@@ -1,0 +1,33 @@
+# === Cartelle con dati ===
+data/
+*.zip
+
+# === Notebook e temp ===
+.ipynb_checkpoints/
+
+# === File di configurazione personali ===
+kaggle.json
+.env
+
+# === Output di modelli ===
+*.h5
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.joblib
+*.sav
+
+# === Python cache ===
+__pycache__/
+*.py[cod]
+*.so
+
+# === IDE / editor file ===
+.vscode/
+*.swp
+.DS_Store
+
+# === Log, output temporanei ===
+*.log
+*.tmp
