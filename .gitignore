@@ -1,33 +1,22 @@
-# === Cartelle con dati ===
+# Data and models
 data/
-*.zip
-
-# === Notebook e temp ===
-.ipynb_checkpoints/
-
-# === File di configurazione personali ===
-kaggle.json
-.env
-
-# === Output di modelli ===
+saved_models/
 *.h5
-*.pt
+*.keras
 *.pth
-*.ckpt
-*.pkl
-*.joblib
-*.sav
+*.pt
 
-# === Python cache ===
+# Python and virtual environments
 __pycache__/
-*.py[cod]
-*.so
+*.pyc
+.venv/
+venv/
+env/
 
-# === IDE / editor file ===
+# IDE and OS
 .vscode/
-*.swp
+.idea/
 .DS_Store
 
-# === Log, output temporanei ===
-*.log
-*.tmp
+# Jupyter
+.ipynb_checkpoints/
