@@ -11,8 +11,8 @@ MODELS_DIR = os.path.join(BASE_DIR, "saved_models")
 RANDOM_SEED = 42
 
 # Image properties
-IMG_HEIGHT = 150
-IMG_WIDTH = 150
+IMG_HEIGHT = 200
+IMG_WIDTH = 300
 CHANNELS = 3
 NUM_CLASSES = 3
 
