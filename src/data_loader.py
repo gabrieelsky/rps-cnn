@@ -26,6 +26,10 @@ class RPSDataset(Dataset):
 
         return image, label
     
+def get_class_mapping(data_dir):
+    classes = sorted([d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))])
+    return {cls_name: idx for idx, cls_name in enumerate(classes)}
+
 def create_dataloaders(data_dir, batch_size=32, img_size=(200,300), seed=42):
     file_paths = []
     labels = []
@@ -43,18 +47,17 @@ def create_dataloaders(data_dir, batch_size=32, img_size=(200,300), seed=42):
                 file_paths.append(os.path.join(cls_dir, file_name))
                 labels.append(class_to_idx[cls_name])
 
-    # 2. Perform stratified data splitting to prevent data leakage
+    # Perform stratified data splitting
     # 70% Train, 30% Temporary (Val + Test)
     train_paths, temp_paths, train_labels, temp_labels = train_test_split(
         file_paths, labels, test_size=0.30, stratify=labels, random_state=seed
     )
     
-    # Split the temporary set equally into Validation (15%) and Test (15%)
+    # Split into Validation (15%) and Test (15%)
     val_paths, test_paths, val_labels, test_labels = train_test_split(
         temp_paths, temp_labels, test_size=0.50, stratify=temp_labels, random_state=seed
     )
 
-    # 3. Define the transformations using the modern torchvision.transforms.v2 API
     train_transform = v2.Compose([
         v2.Resize(img_size),
         v2.RandomHorizontalFlip(p=0.5),

@@ -18,3 +18,5 @@ NUM_CLASSES = 3
 
 # Default training parameters
 DEFAULT_BATCH_SIZE = 32
+
+PRINT_INTERVAL = 10

@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
-from src.data_loader import create_dataloaders
-from src.models import ConvNet
+from src.data_loader import create_dataloaders, get_class_mapping
+from src.models import BaselineCNN, MediumCNN, MicroResNet
 from src.train import train_model, run_grid_search
 from src.evaluate import evaluate_model
 from src.config import *
@@ -19,11 +19,8 @@ def get_device():
 def main():
     device = get_device()
     print(f"Hardware configuration: Using device '{device}'\n")
-
-    data_dir = "data/raw"
     
-    # We load it once here just to extract the class mapping
-    _, _, _, class_mapping = create_dataloaders(data_dir, batch_size=32)
+    class_mapping = get_class_mapping(DATA_DIR)
     num_classes = len(class_mapping)
     print(f"{num_classes} classes found: {class_mapping}\n")
 
@@ -40,7 +37,7 @@ def main():
         model_class=ConvNet,
         param_grid=param_grid,
         dataloader_func=create_dataloaders,
-        data_dir=data_dir,
+        data_dir=DATA_DIR,
         device=device,
         num_classes=num_classes
     )
