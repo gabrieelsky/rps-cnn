@@ -14,6 +14,7 @@ from src.data_loader import RPSDataset
 from src.config import IMG_HEIGHT, IMG_WIDTH
 from src.data_loader import create_dataloaders
 from src.config import *
+from src.utils import AccLossPlot, TrainLossPlot, AverageMeter, accuracy
 
 
 class EarlyStopping:
@@ -183,46 +184,17 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
     results_df = results_df.sort_values(by='mean_f1', ascending=False).reset_index(drop=True)
     return results_df
 
-class AverageMeter(object):
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-def accuracy(output, target, topk=(1,)):
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
-
 def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interval=PRINT_INTERVAL):
     if optimizer is None:
         model.eval()
     else:
         model.train()
 
+    # objects to store metric averages
     avg_loss = AverageMeter()
     avg_top1_acc = AverageMeter()
     avg_batch_time = AverageMeter()
+    global loss_plot
 
     tic = time.time()
     for i, (input_tensor, target) in enumerate(data):
@@ -244,9 +216,14 @@ def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interv
         batch_time = time.time() - tic
         tic = time.time()
 
-        avg_loss.update(loss.item(), input_tensor.size(0))
-        avg_top1_acc.update(prec1.item(), input_tensor.size(0))
+        # update
+        avg_loss.update(loss.item())
+        avg_top1_acc.update(prec1.item())
         avg_batch_time.update(batch_time)
+        if optimizer:
+            loss_plot.update(avg_loss.val)
+            if i % print_interval == 0:
+                loss_plot.plot()
         
         if i % print_interval == 0:
             mode_str = "TRAIN" if optimizer else "EVAL"
@@ -264,7 +241,7 @@ def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interv
 
     return avg_top1_acc.avg, avg_loss.avg
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=20, patience=5, min_delta=0.0, restore_best_weights=True, plotter=None):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=20, patience=5, min_delta=0.0, restore_best_weights=True):
     history = {
         'train_loss': [], 'train_acc': [],
         'val_loss': [], 'val_acc': [],
@@ -274,6 +251,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta)
     best_state = None
+
+    # init plots
+    plot = AccLossPlot()
+    global loss_plot
+    loss_plot = TrainLossPlot()
+
 
     for epoch in range(num_epochs):
         print(f"\n--- Epoch {epoch+1}/{num_epochs} ---")
@@ -299,14 +282,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         history['val_loss'].append(val_loss)
         history['val_acc'].append(val_acc)
 
-        # Update live plotter (if provided)
-        if plotter is not None:
-            try:
-                plotter.update(train_loss, val_loss, train_acc, val_acc)
-                plotter.plot()
-            except Exception:
-                # plotting must never interrupt training
-                pass
+        plot.update(train_loss, val_loss, train_acc, val_acc)
 
         if early_stopping.step(val_loss):
             best_state = copy.deepcopy(model.state_dict())
@@ -317,7 +293,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
             print(f"Early stopping triggered at epoch {epoch+1} (best epoch: {history['best_epoch']}).")
             break
             
-    print("\nTraining complete.")        
+    print("\nTraining complete.")
 
     if restore_best_weights and best_state is not None:
         model.load_state_dict(best_state)
