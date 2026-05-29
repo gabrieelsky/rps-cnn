@@ -5,6 +5,7 @@ saved_models/
 *.keras
 *.pth
 *.pt
+logs/
 
 # Python and virtual environments
 __pycache__/

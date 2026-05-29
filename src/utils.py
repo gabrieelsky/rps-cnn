@@ -2,6 +2,24 @@ import matplotlib.pyplot as plt
 plt.ion()
 import numpy as np
 
+try:
+    from IPython.display import clear_output, display
+except ImportError:
+    clear_output = None
+    display = None
+
+
+def _refresh_figure(fig):
+    """Refresh figures in both scripts and notebook backends."""
+    plt.figure(fig.number)
+    if clear_output is not None and display is not None:
+        clear_output(wait=True)
+        display(fig)
+    else:
+        plt.show(block=False)
+    plt.draw()
+    plt.pause(1e-3)
+
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
@@ -54,9 +72,7 @@ class TrainLossPlot(object):
         plt.title("Train loss / batch")
         plt.xlabel("Batch")
         plt.ylabel("Loss")
-        plt.show()
-        plt.draw_all()
-        plt.pause(1e-3)
+        _refresh_figure(self.fig)
 
 class AccLossPlot(object):
     def __init__(self):
@@ -87,6 +103,4 @@ class AccLossPlot(object):
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.legend()
-        plt.show()
-        plt.draw_all()
-        plt.pause(1e-3)
+        _refresh_figure(self.fig)
