@@ -247,7 +247,7 @@ def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interv
 
     return avg_top1_acc.avg, avg_loss.avg
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=50, patience=5, min_delta=0.0, restore_best_weights=True):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=50, patience=5, min_delta=0.0, restore_best_weights=True, scheduler=None):
     history = {
         'train_loss': [], 'train_acc': [],
         'val_loss': [], 'val_acc': [],
@@ -256,6 +256,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
     }
 
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta)
+    if scheduler is not None and hasattr(scheduler, "patience"):
+        if scheduler.patience >= patience:
+            scheduler.patience = max(1, patience - 2)
+            print(
+                "Scheduler patience adjusted to "
+                f"{scheduler.patience} to stay below early stopping patience {patience}."
+            )
     best_state = None
 
     # init plots
@@ -295,6 +302,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         )
 
         plot.update(train_loss, val_loss, train_acc, val_acc)
+
+        if scheduler is not None:
+            prev_lrs = [group["lr"] for group in optimizer.param_groups]
+            scheduler.step(val_loss)
+            new_lrs = [group["lr"] for group in optimizer.param_groups]
+            if any(new_lr < prev_lr for prev_lr, new_lr in zip(prev_lrs, new_lrs)):
+                print(f"Epoch {epoch + 1}: Reducing learning rate to {new_lrs[0]:.6f}")
 
         if early_stopping.step(val_loss):
             best_state = copy.deepcopy(model.state_dict())
