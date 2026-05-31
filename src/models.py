@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class BaselineCNN(nn.Module):
-    def __init__(self, num_classes=3, input_shape=(3, 150, 150)):
+    def __init__(self, num_classes=3, input_shape=(3, 100, 150)):
         super(BaselineCNN, self).__init__()
         
         self.features = nn.Sequential(
@@ -38,7 +38,7 @@ class BaselineCNN(nn.Module):
 
 
 class MediumCNN(nn.Module):
-    def __init__(self, num_classes=3, input_shape=(3, 150, 150), dropout_rate=0.5):
+    def __init__(self, num_classes=3, input_shape=(3, 100, 150), dropout_rate=0.5):
         super(MediumCNN, self).__init__()
         
         self.features = nn.Sequential(

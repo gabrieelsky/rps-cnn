@@ -11,12 +11,21 @@ MODELS_DIR = os.path.join(BASE_DIR, "saved_models")
 RANDOM_SEED = 42
 
 # Image properties
-IMG_HEIGHT = 200
-IMG_WIDTH = 300
+# Downscale from 300x200 to speed up training while preserving 3:2 aspect ratio.
+IMG_HEIGHT = 100
+IMG_WIDTH = 150
 CHANNELS = 3
 NUM_CLASSES = 3
 
-# Default training parameters
-DEFAULT_BATCH_SIZE = 32
+# Data augmentation defaults (train only).
+HFLIP_PROB = 0.5
+VFLIP_PROB = 0.2
+ROTATION_DEGREES = 20
+RANDOM_RESIZED_CROP_SCALE = (0.8, 1.0)
+RANDOM_RESIZED_CROP_RATIO = (0.9, 1.1)
+COLOR_JITTER_BRIGHTNESS = 0.25
+COLOR_JITTER_CONTRAST = 0.25
+COLOR_JITTER_SATURATION = 0.2
 
 PRINT_INTERVAL = 10
+TRAINING_EPOCHS = 20

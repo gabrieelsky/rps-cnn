@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 import os
 import csv
 from torchvision.utils import save_image
@@ -124,10 +124,13 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
     class_names = [name for name, idx in sorted(class_mapping.items(), key=lambda item: item[1])]
 
     # 1. Print Standard Metrics
+    test_acc = accuracy_score(all_labels, all_preds)
+
     print("\n" + "="*40)
     print("FINAL TEST RESULTS")
     print("="*40)
     print(f"Average Test Loss: {test_loss:.4f}")
+    print(f"Test Accuracy: {test_acc:.4f}")
     
     print("\nClassification Report:")
     print(classification_report(all_labels, all_preds, target_names=class_names))
@@ -147,6 +150,6 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
         log_fp.close()
 
     if return_misclassified:
-        return test_loss, all_preds, all_labels, (mis_files, mis_preds, mis_labels)
+        return test_loss, test_acc, all_preds, all_labels, (mis_files, mis_preds, mis_labels)
 
-    return test_loss, all_preds, all_labels
+    return test_loss, test_acc, all_preds, all_labels

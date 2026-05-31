@@ -8,9 +8,13 @@ import os
 import copy
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score
-from torchvision.transforms import v2
 from torch.utils.data import DataLoader
-from src.data_loader import RPSDataset, compute_mean_std
+from src.data_loader import (
+    RPSDataset,
+    get_train_transform,
+    get_eval_transform,
+    compute_global_mean_std,
+)
 from src.config import IMG_HEIGHT, IMG_WIDTH
 from src.data_loader import create_dataloaders
 from src.config import *
@@ -36,13 +40,13 @@ class EarlyStopping:
             self.should_stop = True
         return False
 
-def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, num_classes, n_splits=3, seed=42, patience=5, min_delta=0.0, restore_best_weights=True):
+def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, num_classes, n_splits=3, seed=42, patience=5, min_delta=0.0, restore_best_weights=True, max_epochs=50):
     """
     Grid search over `param_grid` using Stratified K-Fold cross-validation.
 
     For each hyperparameter configuration, performs `n_splits` stratified folds
-    and computes mean/std of macro-F1 (primary) and accuracy (secondary) on
-    the validation folds. Returns a DataFrame sorted by `mean_f1` descending.
+    and computes mean/std of accuracy (primary) and macro-F1 (secondary) on
+    the validation folds. Returns a DataFrame sorted by `mean_val_acc` descending.
     """
     keys, values = zip(*param_grid.items())
     experiments = [dict(zip(keys, v)) for v in itertools.product(*values)]
@@ -72,25 +76,7 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
 
     labels = np.array(labels)
 
-    # Define transforms (compute mean/std from full file list like data_loader)
     img_size = (IMG_HEIGHT, IMG_WIDTH)
-    mean, std = compute_mean_std(file_paths, img_size)
-
-    train_transform = v2.Compose([
-        v2.Resize(img_size),
-        v2.RandomHorizontalFlip(p=0.5),
-        v2.RandomRotation(degrees=15),
-        v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=mean.tolist(), std=std.tolist())
-    ])
-
-    val_transform = v2.Compose([
-        v2.Resize(img_size),
-        v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=mean.tolist(), std=std.tolist())
-    ])
 
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
 
@@ -102,7 +88,7 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
         # Extract hyperparameters
         lr = config.get('lr', 0.001)
         batch_size = config.get('batch_size', 32)
-        epochs = config.get('epochs', 10)
+        epochs = int(max_epochs)
         dropout = config.get('dropout_rate', 0.5)
         weight_decay = config.get('weight_decay', 0.0)
 
@@ -117,6 +103,22 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
             train_labels = [int(labels[idx]) for idx in train_idx]
             val_paths = [file_paths[idx] for idx in val_idx]
             val_labels = [int(labels[idx]) for idx in val_idx]
+
+            # No leakage in CV: stats are computed from training fold only.
+            fold_mean, fold_std = compute_global_mean_std(train_paths, img_size)
+            fold_norm_mean = [fold_mean, fold_mean, fold_mean]
+            fold_norm_std = [fold_std, fold_std, fold_std]
+
+            train_transform = get_train_transform(
+                img_size,
+                norm_mean=fold_norm_mean,
+                norm_std=fold_norm_std,
+            )
+            val_transform = get_eval_transform(
+                img_size,
+                norm_mean=fold_norm_mean,
+                norm_std=fold_norm_std,
+            )
 
             train_dataset = RPSDataset(train_paths, train_labels, transform=train_transform)
             val_dataset = RPSDataset(val_paths, val_labels, transform=val_transform)
@@ -134,7 +136,7 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
                     model = model_class(num_classes=num_classes).to(device)
 
             criterion = nn.CrossEntropyLoss()
-            optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+            optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
             # Train on this fold
             _, history = train_model(
@@ -185,7 +187,7 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
         })
 
     results_df = pd.DataFrame(results)
-    results_df = results_df.sort_values(by='mean_f1', ascending=False).reset_index(drop=True)
+    results_df = results_df.sort_values(by='mean_val_acc', ascending=False).reset_index(drop=True)
     return results_df
 
 def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interval=PRINT_INTERVAL):
@@ -245,7 +247,7 @@ def epoch_pass(data, model, criterion, optimizer=None, device=None, print_interv
 
     return avg_top1_acc.avg, avg_loss.avg
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=20, patience=5, min_delta=0.0, restore_best_weights=True):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=50, patience=5, min_delta=0.0, restore_best_weights=True):
     history = {
         'train_loss': [], 'train_acc': [],
         'val_loss': [], 'val_acc': [],
