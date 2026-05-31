@@ -1,1 +1,5 @@
 opencv-python
+scikit-learn
+seaborn
+torchsummary
+visualtorch

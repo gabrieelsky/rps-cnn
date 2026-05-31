@@ -288,11 +288,20 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         history['val_loss'].append(val_loss)
         history['val_acc'].append(val_acc)
 
+        print(
+            f"Epoch {epoch+1}: "
+            f"train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, "
+            f"train_acc={train_acc:.2f}, val_acc={val_acc:.2f}"
+        )
+
         plot.update(train_loss, val_loss, train_acc, val_acc)
 
         if early_stopping.step(val_loss):
             best_state = copy.deepcopy(model.state_dict())
             history['best_epoch'] = epoch + 1
+            print("Validation loss decreased, saving model...")
+        else:
+            print(f"Early stopping counter: {early_stopping.bad_epochs} out of {early_stopping.patience}")
 
         if early_stopping.should_stop:
             history['stopped_epoch'] = epoch + 1
