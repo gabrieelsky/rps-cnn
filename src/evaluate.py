@@ -15,9 +15,7 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
     """
     Performs the final evaluation of the model on the test dataset.
     Generates statistical metrics and plots the Confusion Matrix.
-    """
-    print("\nStarting final evaluation on test set...")
-    
+    """   
     # Set the model to evaluation mode (disables Dropout and Batch Norm updates)
     model.eval()
     

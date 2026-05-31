@@ -212,25 +212,6 @@ def plot_learning_curves(history, best_epoch=None, figsize=(12, 4)):
     return fig
 
 
-def print_classification_report(y_true, y_pred, class_names):
-    report = classification_report(y_true, y_pred, target_names=class_names)
-    print(report)
-    return report
-
-
-def plot_confusion_matrix(y_true, y_pred, class_names, normalize=None, figsize=(6, 5), cmap="Blues"):
-    cm = confusion_matrix(y_true, y_pred, labels=range(len(class_names)), normalize=normalize)
-    fmt = ".2f" if normalize else "d"
-
-    plt.figure(figsize=figsize)
-    sns.heatmap(cm, annot=True, fmt=fmt, cmap=cmap, xticklabels=class_names, yticklabels=class_names)
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.title("Confusion Matrix")
-    plt.tight_layout()
-    plt.show()
-
-
 def show_misclassified_grid(dataset, y_true, y_pred, class_names, grid=(2, 4), seed=None, mean=None, std=None):
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
@@ -270,4 +251,5 @@ def show_misclassified_grid(dataset, y_true, y_pred, class_names, grid=(2, 4), s
         ax.axis("off")
 
     plt.tight_layout()
+    print("Misclassified Examples:")
     plt.show()
