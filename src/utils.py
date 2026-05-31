@@ -77,28 +77,28 @@ class TrainLossPlot(object):
 class AccLossPlot(object):
     def __init__(self):
         self.loss_train = []
-        self.loss_test = []
+        self.loss_val = []
         self.acc_train = []
-        self.acc_test = []
+        self.acc_val = []
         self.fig = plt.figure()
 
-    def update(self, loss_train, loss_test, acc_train, acc_test):
+    def update(self, loss_train, loss_val, acc_train, acc_val):
         self.loss_train.append(loss_train)
-        self.loss_test.append(loss_test)
+        self.loss_val.append(loss_val)
         self.acc_train.append(acc_train)
-        self.acc_test.append(acc_test)
+        self.acc_val.append(acc_val)
         plt.figure(self.fig.number)
         plt.clf()
         plt.subplot(1,2,1)
         plt.plot(np.array(self.acc_train), label="acc. train")
-        plt.plot(np.array(self.acc_test), label="acc. test")
+        plt.plot(np.array(self.acc_val), label="acc. val")
         plt.title("Accuracy / epoch")
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy")
         plt.legend()
         plt.subplot(1,2,2)
         plt.plot(np.array(self.loss_train), label="loss train")
-        plt.plot(np.array(self.loss_test), label="loss test")
+        plt.plot(np.array(self.loss_val), label="loss val")
         plt.title("Loss / epoch")
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
