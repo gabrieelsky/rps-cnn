@@ -114,33 +114,21 @@ class MicroResNet(nn.Module):
         self.bn1 = nn.BatchNorm2d(32)
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
-        # Residual Layers (wider + two blocks per stage)
+        # Residual Layers
         self.layer1 = ResidualBlock(in_channels=32, out_channels=32, stride=1)
-        self.layer1_b = ResidualBlock(in_channels=32, out_channels=32, stride=1)
-
         self.layer2 = ResidualBlock(in_channels=32, out_channels=64, stride=2)
-        self.layer2_b = ResidualBlock(in_channels=64, out_channels=64, stride=1)
-
         self.layer3 = ResidualBlock(in_channels=64, out_channels=128, stride=2)
-        self.layer3_b = ResidualBlock(in_channels=128, out_channels=128, stride=1)
-
-        self.layer4 = ResidualBlock(in_channels=128, out_channels=256, stride=2)
-        self.layer4_b = ResidualBlock(in_channels=256, out_channels=256, stride=1)
         
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
         
-        self.fc = nn.Linear(256, num_classes)
+        self.fc = nn.Linear(128, num_classes)
 
     def forward(self, x):
         x = self.pool1(F.relu(self.bn1(self.conv1(x))))
         
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer2_b(x)
         x = self.layer3(x)
-        x = self.layer3_b(x)
-        x = self.layer4(x)
-        x = self.layer4_b(x)
         
         x = self.gap(x)
         x = torch.flatten(x, 1)
