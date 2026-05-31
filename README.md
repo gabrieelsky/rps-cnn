@@ -1,34 +1,58 @@
 # Rock-Paper-Scissors CNN Classification
 
-## Overview
-This repository contains the code and methodology for an image classification project focused on the Rock-Paper-Scissors game. The primary objective is to develop Convolutional Neural Networks (CNNs) following strict methodological guidelines. The project emphasizes reproducibility, automated hyperparameter tuning via cross-validation, and proper data leakage prevention over raw accuracy maximization.
+![Python](https://img.shields.io/badge/python-3.11-blue.svg)
+![PyTorch](https://img.shields.io/badge/pytorch-2.x-red.svg)
 
-## Project Structure
+## What the project does
+This project trains and evaluates convolutional neural networks (CNNs) to classify Rock, Paper, and Scissors hand gestures from images. The workflow emphasizes reproducibility, careful train/val/test splitting, and data-leakage prevention while providing multiple model architectures and evaluation utilities.
 
+- Provides a complete, reproducible pipeline for a small image classification task.
+- Includes multiple model architectures (baseline CNN, deeper CNN, and a tiny ResNet-style model).
+- Implements clean train/validation/test splits and normalization based only on training data.
+- Logs evaluation artifacts and misclassifications for error analysis.
+
+## Project layout
 ```
-├── README.md
-├── main.py
+.
+├── main.ipynb
 ├── requirements.txt
 ├── data/
-│   ├── raw/                 
-│   ├── processed/           
-│   └── custom_test/         
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   └── 02_error_analysis.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data_loader.py
-│   ├── models.py
-│   ├── train.py
-│   └── evaluate.py
+│   ├── raw/
+│   │   ├── paper/
+│   │   ├── rock/
+│   │   └── scissors/
+│   └── custom_test/
+│       ├── paper/
+│       ├── rock/
+│       └── scissors/
+├── report/
+│   └── report.pdf
 ├── saved_models/
-├── logs/
-└── report/
-    └── project_report.pdf
+│   ├── baseline_cnn.pth
+│   ├── grid_search_results.csv
+│   ├── medium_cnn.pth
+│   └── micro_resnet.pth
+└── src/
+    ├── config.py
+    ├── data_loader.py
+    ├── evaluate.py
+    ├── models.py
+    ├── train.py
+    └── utils.py
 ```
 
-## Declaration of Authorship
+## How to get started
 
-_I declare that this material, which I now submit for assessment, is entirely my own work and has not been taken from the work of others, save and to the extent that such work has been cited and acknowledged within the text of my work. I understand that plagiarism, collusion, and copying are grave and serious offences in the university and accept the penalties that would be imposed should I engage in plagiarism, collusion or copying. This assignment, or any part of it, has not been previously submitted by me or any other person for assessment on this or any other course of study._
+### 1) Set up the environment
+The provided [requirements.txt](requirements.txt) is a Conda export, not a pip-style file.
+
+```bash
+conda create --name rps-cnn --file requirements.txt
+conda activate rps-cnn
+```
+
+### 2) Prepare data
+Place images under [data/raw](data/raw) using the class subfolders shown above. For an out-of-sample check, place images under [data/custom_test](data/custom_test) with the same class folder structure.
+
+### 3) Run the notebook
+Open and run [main.ipynb](main.ipynb). It drives the end-to-end workflow: data loading, training, evaluation, and saving results.
