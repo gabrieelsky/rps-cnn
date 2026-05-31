@@ -1,5 +1,6 @@
 import os
 import torch
+import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
@@ -58,18 +59,23 @@ def create_dataloaders(data_dir, batch_size=32, img_size=(200,300), seed=42):
         temp_paths, temp_labels, test_size=0.50, stratify=temp_labels, random_state=seed
     )
 
+    # Compute mean/std on the training set and include Normalize
+    mean, std = compute_mean_std(train_paths, img_size)
+
     train_transform = v2.Compose([
         v2.Resize(img_size),
         v2.RandomHorizontalFlip(p=0.5),
         v2.RandomRotation(degrees=15),
-        v2.ToImage(), 
-        v2.ToDtype(torch.float32, scale=True)
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=mean.tolist(), std=std.tolist())
     ])
 
     val_test_transform = v2.Compose([
         v2.Resize(img_size),
-        v2.ToImage(), 
-        v2.ToDtype(torch.float32, scale=True)
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=mean.tolist(), std=std.tolist())
     ])
 
     train_dataset = RPSDataset(train_paths, train_labels, transform=train_transform)
@@ -81,3 +87,36 @@ def create_dataloaders(data_dir, batch_size=32, img_size=(200,300), seed=42):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader, class_to_idx
+
+
+def compute_mean_std(file_paths, img_size=(200,300)):
+    """Compute per-channel mean and std (in [0,1]) for a list of image file paths.
+
+    Returns (mean, std) as numpy arrays of shape (3,).
+    """
+    from PIL import Image
+
+    cnt = 0
+    mean = np.zeros(3, dtype=np.float64)
+    sq_mean = np.zeros(3, dtype=np.float64)
+
+    for p in file_paths:
+        with Image.open(p) as img:
+            img = img.convert('RGB').resize((img_size[1], img_size[0]))
+            arr = np.asarray(img, dtype=np.float32) / 255.0  # H,W,C
+            # sum over H,W
+            mean += arr.mean(axis=(0, 1))
+            sq_mean += (arr ** 2).mean(axis=(0, 1))
+            cnt += 1
+
+    if cnt == 0:
+        # fallback to ImageNet stats
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        return mean, std
+
+    mean = mean / cnt
+    sq_mean = sq_mean / cnt
+    var = sq_mean - (mean ** 2)
+    std = np.sqrt(np.maximum(var, 1e-6))
+    return mean.astype(np.float32), std.astype(np.float32)

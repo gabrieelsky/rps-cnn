@@ -10,7 +10,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score
 from torchvision.transforms import v2
 from torch.utils.data import DataLoader
-from src.data_loader import RPSDataset
+from src.data_loader import RPSDataset, compute_mean_std
 from src.config import IMG_HEIGHT, IMG_WIDTH
 from src.data_loader import create_dataloaders
 from src.config import *
@@ -72,20 +72,24 @@ def run_grid_search(model_class, param_grid, dataloader_func, data_dir, device, 
 
     labels = np.array(labels)
 
-    # Define transforms (same as data_loader.py)
+    # Define transforms (compute mean/std from full file list like data_loader)
     img_size = (IMG_HEIGHT, IMG_WIDTH)
+    mean, std = compute_mean_std(file_paths, img_size)
+
     train_transform = v2.Compose([
         v2.Resize(img_size),
         v2.RandomHorizontalFlip(p=0.5),
         v2.RandomRotation(degrees=15),
         v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True)
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=mean.tolist(), std=std.tolist())
     ])
 
     val_transform = v2.Compose([
         v2.Resize(img_size),
         v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True)
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=mean.tolist(), std=std.tolist())
     ])
 
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
