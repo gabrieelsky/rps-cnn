@@ -21,3 +21,6 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
+
+.conda/
+.img/

@@ -12,11 +12,6 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
                    misclassified_dir='logs/misclassified',
                    max_save=200,
                    return_misclassified=False):
-    """
-    Performs the final evaluation of the model on the test dataset.
-    Generates statistical metrics and plots the Confusion Matrix.
-    """   
-    # Set the model to evaluation mode (disables Dropout and Batch Norm updates)
     model.eval()
     
     running_loss = 0.0
@@ -26,7 +21,6 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
     mis_preds = []
     mis_labels = []
 
-    # prepare logging if requested
     log_fp = None
     if misclassified_log:
         log_dir = os.path.dirname(misclassified_log) or "."
@@ -37,7 +31,6 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
         if write_header:
             log_writer.writerow(['filename', 'predicted_label', 'ground_truth_label'])
 
-    # Disable gradient calculation for inference (saves memory and compute)
     with torch.no_grad():
         running_idx = 0
         try:
@@ -55,21 +48,17 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
             
             running_loss += loss.item() * inputs.size(0)
 
-            # Get the predicted classes
             _, preds = torch.max(outputs, 1)
             
-            # Store predictions and true labels for scikit-learn metrics
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             
 
-            # collect/save misclassified examples and log filename,pred,true
             mismatch = (preds != labels)
             for bi in range(inputs.size(0)):
                 if not mismatch[bi]:
                     continue
 
-                # determine filename: prefer dataset file path when available
                 filename = None
                 if dataset_file_paths is not None:
                     idx = running_idx + bi
@@ -101,9 +90,7 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
                 if log_fp is not None:
                     log_writer.writerow([to_log_name, pred_idx, true_idx])
                     log_fp.flush()
-                # Keep in-memory lists if requested to return later
                 if return_misclassified and len(mis_files) < max_save:
-                    # if saved_path is present we already appended to mis_files above; otherwise append a placeholder
                     if saved_path:
                         pass
                     else:
@@ -111,17 +98,12 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
                         mis_preds.append(pred_idx)
                         mis_labels.append(true_idx)
 
-            
-            # advance running index by batch size
             running_idx += inputs.size(0)
 
-        # Calculate average test loss
     test_loss = running_loss / len(test_loader.dataset)
     
-    # Extract class names ordered by their index
     class_names = [name for name, idx in sorted(class_mapping.items(), key=lambda item: item[1])]
 
-    # 1. Print Standard Metrics
     test_acc = accuracy_score(all_labels, all_preds)
 
     print("\n" + "="*40)
@@ -133,11 +115,9 @@ def evaluate_model(model, test_loader, criterion, device, class_mapping,
     print("\nClassification Report:")
     print(classification_report(all_labels, all_preds, target_names=class_names))
 
-    # 2. Generate and display the Confusion Matrix
     cm = confusion_matrix(all_labels, all_preds)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
     
-    # Plotting configuration
     fig, ax = plt.subplots(figsize=(8, 6))
     disp.plot(cmap=plt.cm.Blues, ax=ax, values_format='d')
     plt.title("Test Set - Confusion Matrix")

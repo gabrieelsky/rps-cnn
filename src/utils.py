@@ -135,11 +135,29 @@ def print_model_summary(model, input_size, device=None):
         model.to(original_device)
 
 
-def visualize_model_architecture(model, input_size, scale_xy=1.0, scale_z=1.0, background_color="white"):
+def visualize_model_architecture(
+    model, 
+    input_size, 
+    scale_xy=1.0, 
+    scale_z=1.0, 
+    background_color="white", 
+    show_legend=True,
+    font_path="/System/Library/Fonts/Helvetica.ttc",
+    font_size=14
+):
     try:
         import visualtorch
+        from PIL import ImageFont
     except ImportError as exc:
-        raise ImportError("visualtorch is required for architecture visualization.") from exc
+        raise ImportError("visualtorch and Pillow are required for architecture visualization.") from exc
+
+    # Load custom font for the legend to improve readability
+    font = None
+    if show_legend and font_path:
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+        except OSError:
+            print(f"Font at {font_path} not found. Falling back to default PIL font.")
 
     original_device = next(model.parameters()).device
     model.to("cpu")
@@ -156,12 +174,14 @@ def visualize_model_architecture(model, input_size, scale_xy=1.0, scale_z=1.0, b
                     scale_xy=scale_xy,
                     scale_z=scale_z,
                     background_fill=background_color,
-                    legend=False,
+                    legend=show_legend,
+                    font=font
                 )
                 break
             except Exception as exc:
                 errors.append(exc)
                 image = None
+                
         if image is None:
             print("visualtorch could not render the architecture with the provided input size.")
             if errors:
@@ -170,10 +190,10 @@ def visualize_model_architecture(model, input_size, scale_xy=1.0, scale_z=1.0, b
     finally:
         model.to(original_device)
 
-    if display is not None:
+    if 'display' in globals():
         display(image)
+        
     return image
-
 
 def plot_learning_curves(history, best_epoch=None, figsize=(12, 4)):
     train_loss = history.get("train_loss", [])
